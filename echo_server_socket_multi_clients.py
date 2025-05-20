@@ -6,6 +6,8 @@
 import argparse
 import socket
 import signal
+import os
+import sys
 
 #################################################
 ## Parsing command line arguments
@@ -34,7 +36,7 @@ def close_connection(sig, frame):
     if s:
         # close the socket
         s.close()
-    exit(0)
+    sys.exit(0)
 
 # Register this handler for Ctrl+C (SIGINT) event
 signal.signal(signal.SIGINT, close_connection)
@@ -47,24 +49,33 @@ signal.signal(signal.SIGINT, close_connection)
 
 # socket creation
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# Allow reusing of adress
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
 # bind with a local address and port
 s.bind((host, options.port))
 
 # make it a server socket
-s.listen(1)
+s.listen(3)
 print("Server listening on port", options.port)
 
 while True:
     # wait for a connection
     conn, address = s.accept()
     print("Connection accepted")
-    while True:
-        # receive the data
-        data = conn.recv(1024)
-        if not data:
-            break
-        print("Received: " + data.decode('utf-8'))
-    print("Connection broken!")
-    # we close the connection
-    conn.close()
+    child = os.fork()
+    if child == 0:
+        s.close()
+        while True:
+            # receive the data
+            data = conn.recv(1024)
+            if not data:
+                break
+            print("Received: " + data.decode('utf-8'))
+        print("Connection broken!")
+        # we close the connection
+        conn.close()
+        os._exit(0)
+    else:
+        conn.close()
+s.close()

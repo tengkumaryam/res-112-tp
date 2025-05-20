@@ -7,6 +7,8 @@ sends it to a server.
 import argparse
 import socket
 import signal
+import os
+import sys
 
 #################################################
 ## Parsing command line arguments
@@ -62,5 +64,3 @@ while (not done):
         inputString = inputString.encode('utf-8')
         # Send the data
         s.send(inputString)
-           
-           
